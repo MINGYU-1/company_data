@@ -60,6 +60,21 @@
     * `requests`와 `dotenv`를 사용해 API 키를 관리
     * `DATASET_SUNDO_69` (숙박업) 데이터를 500개 단위로 반복 조회하여 전체를 가져오는 로직을 구현
     * 수집한 데이터를 `data_csv/숙박업_강원도_읍면동.csv` 파일로 저장s
+    
+* **강원도 사업체 공간집계정보 탐색** (`11_09_spacecollectinginformation.ipynb`):
+    * `강원도_사업체_공간집계정보.csv`를 로드했습니다.
+    * 불필요한 컬럼 ['Unnamed: 0', 'SPCE_INFO']를 삭제하고, 기존 index 컬럼을 실제 인덱스로 설정했습니다.
+    * 주요 분석 대상 컬럼 10개를 지정하여 전체 행에 대해 stack() 변환을 수행했습니다
+    * 기존 498개 구역 × 10개 변수 → 총 146,475행으로 변환된 것을 확인했습니다.
+
+* **강원도 읍면동 도소매업 탐색** (`11_09_wholesale_retail_business_key.ipynb`):
+    * `읍면동_도소매업.csv` 파일을 로드했습니다.
+    *  수집된 모든 데이터를 pandas.DataFrame으로 변환해 27개 컬럼, 139개 행으로 구성된 최종 테이블을 생성했습니다.
+
+* **강원도 읍면동 전입가구 수 탐색** (`11_09_movinghousehold.ipynb`):
+    * `읍면동_전입가구수.csv` 파일을 로드했습니다.
+    * head(), columns.tolist(), info() 등을 통해 데이터의 구조, 변수 목록, 결측 여부 등을 기본적으로 탐색했습니다.
+
 
 ---
 
@@ -119,6 +134,7 @@
     1.  `강원도업종.csv` -> `insert_kangwondo_businesses.sql`
     2.  `춘천시업종_좌표포함.csv` -> `insert_chuncheon_businesses_with_coords.sql`
     3.  `업종_100m이내_버스정류장_목록.csv` -> `insert_business_near_stops.sql`
+    4.  
 
 ---
 

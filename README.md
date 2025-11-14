@@ -134,7 +134,7 @@
     1.  `강원도업종.csv` -> `insert_kangwondo_businesses.sql`
     2.  `춘천시업종_좌표포함.csv` -> `insert_chuncheon_businesses_with_coords.sql`
     3.  `업종_100m이내_버스정류장_목록.csv` -> `insert_business_near_stops.sql`
-    4.  
+    4.  `강원도_사업체_공간집계정보.csv` -> `insert_kangwondo_Spatial_statistics.sql`
 
 ---
 

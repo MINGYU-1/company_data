@@ -144,3 +144,186 @@
     * `mysql.connector`와 `dotenv`를 사용해 로컬 MySQL 서버(`127.0.0.1`)의 `new_schema` 데이터베이스에 연결했습니다.
     * `SHOW TABLES` 쿼리를 실행하여 11월 13일에 생성한 SQL 스크립트가 잘 적용되었는지 확인했습니다.
     * **확인된 테이블**: `kangwondo_businesses`와 `chuncheon_businesses_with_coords` 등이 `new_schema`에 존재하는 것을 확인했습니다.
+
+  ---
+## 📅 11월 18일 작업 기록 정리
+
+* **M5 State Sales 데이터 탐색 및 시각화**
+
+* 파일: m5_state_sales.csv
+
+* 수행한 작업:
+	•	date 컬럼을 datetime으로 변환 후 index로 설정
+	•	전체 데이터 구조 및 타입 확인 (df.info())
+	•	state_id 고유값 확인
+	•	sales(Target) 기준으로 CA, TX, WI 세 주의 시계열 비교 그래프 작성
+	•	전체 sales 단일 시리즈도 별도로 plot
+
+* 사용한 패키지:
+	•	pandas
+	•	matplotlib
+
+* **Prophet 기본 모델 실습**
+
+* 파일:
+	•	example_wp_log_peyton_manning.csv
+	•	example_wp_log_R.csv
+
+
+* Prophet 기본 모델
+	•	Prophet 객체 생성 및 학습
+	•	365일 미래 데이터프레임 생성
+	•	예측 및 plot
+
+* Logistic Growth 적용 모델
+	•	cap 값 설정
+	•	성장모델을 'logistic'으로 지정
+	•	1826일 예측 수행
+	•	결과 plot
+---
+## 📅 11월 19일: 강원도 일반음식점 데이터 전처리 & 이상치 제거
+
+* **CSV 파일 로드 및 인코딩 처리** 
+	•	강원특별자치도_일반음식점.csv 경로 자동 탐지 후 CP949로 로드
+	•	CP949 실패 시 UTF-8로 재시도
+	•	불필요한 전체 NULL 컬럼 제거
+	•	사업장명을 index로 설정
+
+⸻
+
+* **폐업일자(null) 비율 분석**
+	•	폐업일자의 null / not null 개수 집계
+	•	비율을 자동 계산하는 custom autopct 함수 생성
+	•	파이차트 시각화 및 저장
+→ ‘일반음식점폐업_파이차트.png’
+
+⸻
+
+* **결측열 정리**
+	•	isnull().all() 기준으로 100% 결측인 컬럼 식별
+	•	해당 컬럼 전체 삭제
+	•	전반적인 정보(data.info)를 통해 데이터 형태 재확인
+
+⸻
+
+* **이상치 제거 (소재지면적)**
+	•	IQR 기반 이상치 경계 계산 (Q1, Q3, IQR, lower/upper bound)
+	•	소재지면적 == 0 제거 (사전 정제)
+	•	정상 범위 내 데이터만 추출해 data_cleaned 생성
+	•	이상치 제거 전/후 describe() 비교
+	•	제거된 데이터 비율 계산
+→ (data_cleaned.count / data.count)
+	•	최종 정제된 파일
+→ ‘이상치제거한_일반음식점.csv’
+---
+## 📅 11월 23일: LocalData 전국 업종 규모 분석
+
+* **LocalData 업종 요약 데이터 로드 및 전처리**
+	•	summary_sorted.csv 파일을 불러와 분석 시작
+	•	분석에 불필요한 컬럼 제거
+	•	encoding
+	•	Unnamed: 0
+	•	전체 데이터 구조 확인 (data.info())
+
+⸻
+
+* **업종별 사업현황 규모 정렬 및 상위 10개 추출**
+	•	rows 기준으로 내림차순 정렬
+	•	상위 10개 업종만 선택하여 집중 분석
+	•	가독성을 위해 컬럼명 변경
+	•	filename → 업종
+	•	rows → 사업현황
+	•	업종명을 index로 설정하여 시각화 준비
+
+⸻
+
+* **업종명 라벨 정제**
+	•	파일명 형태의 string을 실제 업종명으로 변환
+	•	예: "음식점_강원도.csv" → "강원도.csv"
+	•	split('_', 1)[1] 방식으로 prefix 제거
+	•	시각화 x축 라벨에 적용
+
+⸻
+
+* **업종별 사업현황 바 차트 시각화**
+	•	한글 깨짐 방지를 위해 Malgun Gothic 지정
+	•	사업현황 기준 bar chart 생성
+	•	x축 라벨은 45° 회전하여 가독성 확보
+	•	전체 레이아웃 조정 후 출력 완료
+
+---
+## 📅 11월 17일: MySQL 연동 및 데이터셋 통합 준비
+
+이날은 로컬 MySQL DB에 저장된 사업체·정류장·상권 데이터를 불러와 EDA·대시보드·지도 시각화에서 공통으로 사용할 통합 데이터셋 구조를 구축한 날이었습니다.
+
+⸻
+**MySQL 테이블 조회 및 연결 테스트 (11_17_show_tables.ipynb)**
+	•	.env에서 비밀번호 로드 후 mysql.connector로 DB 연결을 수행했습니다.
+	•	SHOW TABLES로 현재 저장된 테이블 목록을 확인했습니다.
+	•	커서 재사용 문제를 방지하기 위해 매 쿼리마다 새로운 cursor 생성 → 즉시 close 구조로 개선했습니다.
+
+⸻
+
+**주요 테이블 데이터 샘플 확인 (11_17_table_preview.ipynb)**
+
+각 테이블의 컬럼 구조와 데이터 형식을 파악하기 위해 상위 5개 행만 조회했습니다.
+
+✔ 조회한 테이블
+	1.	bus_routes2
+	•	정류장명, 경도, 위도
+	•	→ 지도 표시용 버스 정류장 데이터
+	2.	commercial_area
+	•	상권업종대분류명, 시군구명, 경도, 위도
+	•	→ 상권 중심점 정보
+	3.	chuncheon_businesses_with_coords
+	•	업종, 업소명, 위도, 경도
+	•	→ 좌표 변환된 업소 위치
+	4.	kangwondo_businesses, sanggwon_businesses
+	•	강원도 전체 사업체 정보
+	•	→ UI의 사업체 리스트·검색 기능에 사용
+
+각 테이블은 컬럼명과 자료형을 확인하고 NaN 여부를 점검했습니다.
+
+⸻
+
+**통합 로더 함수 구축 (prepare_ui_data())**
+
+* 이날 작업의 핵심은 여러 테이블을 한 번에 불러와 딕셔너리 형태로 통합하는 시스템을 설계한 것입니다.
+
+✔ get_db_connection()
+	•	MySQL 연결 객체를 반환하는 기본 함수 구현
+	•	연결 실패 시 안전하게 None 반환
+
+✔ load_data_to_df()
+	•	SQL 쿼리를 DataFrame으로 자동 변환하는 공통 로더
+	•	실행된 쿼리와 로딩된 행 수를 함께 출력해 디버깅 용이
+
+✔ 불러온 데이터
+* 함수 내부에서 5개의 핵심 데이터셋을 자동 로딩하고 컬럼을 통일했습니다.
+	1.	bus_stations
+	•	컬럼: station_name, lon, lat
+	•	지도 시각화용
+	2.	businesses
+	•	컬럼: type, name, lat, lon
+	•	춘천시 업소 좌표
+	3.	area_info
+	•	컬럼: 상권 대분류명, 시군구명, 경도·위도
+	•	상권–업종 매칭용
+	4.	sanggwon_details
+	•	상권별 업종·업소 텍스트 정보
+	5.	all_businesses_list
+	•	강원도 전체 사업체 목록
+	•	검색/리스트 UI 기반 데이터
+
+⸻
+**최종 산출물**
+
+* prepare_ui_data() 실행 결과는 아래의 딕셔너리 구조로 반환됨:
+{
+    "bus_stations": [...],
+    "businesses": [...],
+    "all_businesses_list": [...],
+    "area_info": [...],
+    "sanggwon_details": [...]
+}
+이 구조는 바로 웹 UI·시각화·대시보드에 전달 가능한 형태.

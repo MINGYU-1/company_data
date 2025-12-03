@@ -1,6 +1,6 @@
 # app.py
-import mysql.connector
 import os
+import mysql.connector
 import json
 import pandas as pd
 from dotenv import load_dotenv

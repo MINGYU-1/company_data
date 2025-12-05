@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>춘천시 소상공인 창업 분석 대시보드</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.css" />
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: #eee;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .tab-button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .tab-content {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-top: none;
+            min-height: 500px;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .sidebar {
+            float: left;
+            width: 20%;
+            padding-right: 20px;
+        }
+
+        .main-content {
+            float: left;
+            width: 75%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>💰 춘천시 소상공인 창업 및 경쟁 분석 대시보드</h1>
+        <p>데이터 기반 의사결정을 위한 춘천시 상권 및 경쟁사 정보 제공</p>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('map-tab')">🗺️ 지도 기반 상권 분석</button>
+            <button class="tab-button" onclick="openTab('chart-tab')">📊 업종별 비교 분석</button>
+            <button class="tab-button" onclick="openTab('list-tab')">📄 상세 데이터 목록</button>
+        </div>
+
+        <div id="map-tab" class="tab-content">
+            <div class="sidebar">
+                <h3>지도 필터 설정</h3>
+                <label for="typeFilter">사업체 업종 선택:</label>
+                <select id="typeFilter" onchange="updateMap()"></select>
+                <label><input type="checkbox" id="busToggle" onchange="updateMap()"> 🚌 버스 정류장 위치 표시</label>
+                <p><small id="markerCount">지도에 표시된 사업체 수: 0개</small></p>
+            </div>
+            <div class="main-content">
+                <h2>1. 지도 기반 상권 및 유동 인구 분석</h2>
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div id="chart-tab" class="tab-content" style="display:none;">
+            <h2>2. 지역별 시장 포화도 및 주요 업종 비교</h2>
+            <canvas id="bizChart"></canvas>
+            <p>특정 업종의 춘천 내 밀집도(경쟁 포화도)를 강원도 전체와 비교하여 확인하세요.</p>
+        </div>
+
+        <div id="list-tab" class="tab-content" style="display:none;">
+            <h2>3. 강원도 사업체 상세 목록 검색</h2>
+            <table id="dataTable" class="display" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>업종</th>
+                        <th>업소명</th>
+                        <th>주소</th>
+                        <th>연락처</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let mapData = [];
+        let chartData = [];
+        let listData = [];
+        let map = null;
+        let markers = L.layerGroup();
+        let busMarkers = L.layerGroup();
+        let typeSelect = document.getElementById('typeFilter');
+
+        // 탭 전환 함수
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelector(`.tab-button[onclick="openTab('${tabId}')"]`).classList.add('active');
+
+            // 차트 탭이 열릴 때 차트 렌더링
+            if (tabId === 'chart-tab') {
+                renderChart();
+            }
+        }
+
+        // 초기 데이터 로드
+        fetch('/api/businesses')
+            .then(response => response.json())
+            .then(data => {
+                mapData = data.map_data;
+                chartData = data.chart_data;
+                listData = data.list_data;
+
+                // 지도 초기화
+                initializeMap();
+
+                // 업종 필터 옵션 채우기
+                const types = [...new Set(mapData.map(item => item.type))];
+                typeSelect.innerHTML = `<option value="전체">전체</option>` +
+                    types.map(t => `<option value="${t}">${t}</option>`).join('');
+
+                // DataTables 초기화
+                initializeDataTable();
+
+                // 지도 업데이트 (최초 로드)
+                updateMap();
+            })
+            .catch(error => console.error('Error fetching data:', error));
+
+        // 지도 초기화
+        function initializeMap() {
+            const avgLat = mapData.reduce((sum, item) => sum + item.lat, 0) / mapData.length || 37.88;
+            const avgLon = mapData.reduce((sum, item) => sum + item.lon, 0) / mapData.length || 127.73;
+
+            map = L.map('map').setView([avgLat, avgLon], 12);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            markers.addTo(map);
+            busMarkers.addTo(map);
+        }
+
+        // 지도 업데이트 및 필터 적용
+        function updateMap() {
+            markers.clearLayers();
+            busMarkers.clearLayers();
+            const selectedType = typeSelect.value;
+            const showBus = document.getElementById('busToggle').checked;
+            let count = 0;
+
+            // 사업체 마커 추가
+            mapData.forEach(biz => {
+                if (selectedType === '전체' || biz.type === selectedType) {
+                    L.circleMarker([biz.lat, biz.lon], {
+                        radius: 4,
+                        color: '#FF0000',
+                        fillOpacity: 0.7
+                    }).bindPopup(`<b>${biz.name}</b> (${biz.type})`).addTo(markers);
+                    count++;
+                }
+            });
+
+            // 버스 정류장 마커 추가 (app.py에서 버스 데이터도 가져와야 실제 작동)
+            if (showBus) {
+                // 🚨 실제로는 API에서 버스 데이터를 받아와야 합니다. 현재는 데이터가 없다고 가정하고 로직만 유지
+                // 임시 코드: L.marker([37.89, 127.75], { icon: L.icon({ iconUrl: 'bus-icon.png' }) }).addTo(busMarkers);
+                // API에 bus_routes2 데이터를 추가하여 여기서 사용하세요.
+            }
+
+            document.getElementById('markerCount').textContent = `지도에 표시된 사업체 수: ${count}개`;
+        }
+
+        // 차트 렌더링 함수
+        function renderChart() {
+            const ctx = document.getElementById('bizChart').getContext('2d');
+
+            // 상위 10개 업종 필터링 로직 (JS에서 처리)
+            const countsByType = chartData.reduce((acc, curr) => {
+                acc[curr.type] = (acc[curr.type] || 0) + curr.count;
+                return acc;
+            }, {});
+
+            const sortedTypes = Object.entries(countsByType)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 10)
+                .map(([type]) => type);
+
+            const chartDataFiltered = chartData.filter(d => sortedTypes.includes(d.type));
+
+            // Chart.js 데이터셋 준비
+            const regions = ['춘천시', '강원도 타 지역'];
+            const datasets = regions.map(region => ({
+                label: region,
+                data: sortedTypes.map(type => {
+                    const item = chartDataFiltered.find(d => d.region === region && d.type === type);
+                    return item ? item.count : 0;
+                }),
+                backgroundColor: region === '춘천시' ? 'rgba(0, 123, 255, 0.7)' : 'rgba(255, 99, 132, 0.7)',
+            }));
+
+            // 기존 차트 파괴 후 새로 생성
+            if (window.bizChartInstance) {
+                window.bizChartInstance.destroy();
+            }
+
+            window.bizChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedTypes,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { beginAtZero: true, stacked: true }
+                    },
+                    plugins: {
+                        title: { display: true, text: '지역별 상위 업종 비교 (사업체 수)' }
+                    }
+                }
+            });
+        }
+
+        // DataTables 초기화
+        function initializeDataTable() {
+            if ($.fn.DataTable.isDataTable('#dataTable')) {
+                $('#dataTable').DataTable().destroy();
+            }
+
+            $('#dataTable').DataTable({
+                data: listData.map(d => [d.type, d.name, d.address, d.contact]),
+                columns: [
+                    { title: "업종" },
+                    { title: "업소명" },
+                    { title: "주소" },
+                    { title: "연락처" }
+                ],
+                dom: 'Bfrtip', // 버튼 사용 활성화
+                buttons: [
+                    'csv' // CSV 다운로드 버튼
+                ],
+                pageLength: 10
+            });
+        }
+
+        // 페이지 로드 시 첫 번째 탭 활성화
+        document.addEventListener('DOMContentLoaded', () => {
+            openTab('map-tab');
+        });
+    </script>
+</body>
+
+</html>

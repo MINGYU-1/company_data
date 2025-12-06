@@ -430,15 +430,15 @@
 ## 📅 11월 28일: 강원 일반음식점 폐업 예측 — 로지스틱 회귀 기반 1차 모델링
 
 이날은 강원 일반음식점 데이터(`강원일반음식점.csv`) 를 활용해
-폐업 여부(Y=폐업여부)를 예측하는 Baseline Logistic Regression 모델을 구축했습니다.
+폐업 여부(Y=폐업여부)를 예측하는 `Baseline Logistic Regression` 모델을 구축했습니다.
 
 
 
 * **데이터 로드 및 기본 전처리**
 	•	CP949 인코딩으로 로드했습니다. 
 	•	폐업일자가 존재하면 폐업(1), 없으면 정상(0) → 폐업여부 컬럼 생성했습니다. 
-	•	소재지면적 결측치는 **중앙값(median)**으로 대체했습니다. 
-	•	위생업태명은 One-hot 인코딩(dummies), 첫 범주는 drop_first했습니다. 
+	•	소재지면적 결측치는 **중앙값(`median`)**으로 대체했습니다. 
+	•	위생업태명은 `One-hot 인코딩(dummies)`, 첫 범주는 `drop_first`했습니다. 
 
 
 
@@ -452,9 +452,9 @@
 
 
 * **로지스틱 회귀 모델 학습**
-	•	train/test = 8:2
-	•	LogisticRegression(max_iter=2000)으로 학습 수행
-	•	계수(Feature Importance)를 DataFrame으로 정리하여 폐업에 가장 영향을 많이 주는 업태 순위를 파악했음.
+	•	`train/test = 8:2`
+	•	`LogisticRegression(max_iter=2000)`으로 학습 수행
+	•	계수(Feature Importance)를 `DataFrame`으로 정리하여 폐업에 가장 영향을 많이 주는 업태 순위를 파악했음.
 
 ---
 
@@ -466,7 +466,7 @@
 
 
 * **데이터 로드 및 날짜 처리**
-	•	인허가일자, 폐업일자 → datetime 변환
+	•	인허가일자, 폐업일자 → `datetime` 변환
 	•	최근 5년(2019~) 데이터만 유지
 	•	폐업일자가 존재하면 폐업여부 = 1
 
@@ -476,9 +476,9 @@
 업태명 + year 기준으로 그룹핑하여
 	•	신규 개업 수
 	•	폐업 수
-	•	순증가량(Net Growth = 신규 - 폐업)
+	•	순증가량(`Net Growth = 신규 - 폐업`)
 
-계산 후 원본 df와 merge했습니다. .
+계산 후 원본 `df`와 `merge`했습니다. .
 
 
 * **영업기간 계산**
@@ -488,7 +488,7 @@
 
 * **면적 처리**
 	•	소재지면적 숫자형 변환
-	•	결측치 → median 처리
+	•	결측치 → `median` 처리
 	•	로그 변환 컬럼 추가: log_면적
 
 
@@ -496,7 +496,7 @@
 
 소재지전체주소에서
 	•	“시 도”/ “시 군” 2단계 주소까지 추출 → 지역 변수 생성
-	•	이후 전체 지역을 One-hot Encoding
+	•	이후 전체 지역을 `One-hot Encoding`
 
 
 * **업태명 더미 변수화**
@@ -506,16 +506,16 @@
 * **모델용 X, y 구성**
 X 변수:
 	•	영업기간
-	•	net_growth
+	•	`net_growth`
 	•	log_면적
-	•	지역 dummy
-	•	위생업태명 dummy
+	•	지역 `dummy`
+	•	위생업태명 `dummy`
 
 y:
 	•	폐업여부
 
 * **Train/Test 분리 & 학습**
-	•	동일하게 train/test=8:2
+	•	동일하게 `train/test=8:2`
 	•	LogisticRegression(max_iter=10000)
 	•	모델 적합
 
